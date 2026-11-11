@@ -1,0 +1,97 @@
+
+(function () {
+    'use strict';
+
+    if (window.LampaPTBRAudioV3) return;
+    window.LampaPTBRAudioV3 = true;
+
+    function normalize(value) {
+        return String(value || '')
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/_/g, '-')
+            .trim();
+    }
+
+    function isPortuguese(track) {
+        var fields = [
+            track.language,
+            track.lang,
+            track.label,
+            track.name,
+            track.title
+        ];
+
+        for (var i = 0; i < fields.length; i++) {
+            var value = normalize(fields[i]);
+
+            if (
+                value === 'pt-br' ||
+                value === 'por-br' ||
+                value === 'pob' ||
+                value === 'pt' ||
+                value === 'por' ||
+                value.indexOf('pt-br') !== -1 ||
+                value.indexOf('portugues') !== -1 ||
+                value.indexOf('portuguese') !== -1 ||
+                value.indexOf('brazilian') !== -1
+            ) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    function selectAudio() {
+        try {
+            var video = Lampa.PlayerVideo.video();
+
+            if (!video || !video.audioTracks) return false;
+
+            var tracks = video.audioTracks;
+
+            for (var i = 0; i < tracks.length; i++) {
+                if (isPortuguese(tracks[i])) {
+                    for (var j = 0; j < tracks.length; j++) {
+                        tracks[j].enabled = (j === i);
+                    }
+
+                    Lampa.Noty.show(
+                        'Áudio em português selecionado'
+                    );
+
+                    console.log(
+                        '[Lampa PT-BR V3] Áudio português selecionado'
+                    );
+
+                    return true;
+                }
+            }
+        } catch (error) {
+            console.log('[Lampa PT-BR V3]', error);
+        }
+
+        return false;
+    }
+
+    Lampa.Player.listener.follow('start', function () {
+        var attempts = 0;
+
+        function check() {
+            attempts++;
+
+            if (selectAudio()) return;
+
+            if (attempts < 15) {
+                setTimeout(check, 1000);
+            }
+        }
+
+        setTimeout(check, 1000);
+    });
+
+    console.log('Lampa PT-BR Audio 3.0 carregado');
+
+})();
